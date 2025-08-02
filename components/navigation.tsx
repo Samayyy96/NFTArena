@@ -11,13 +11,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Home, User, ShoppingCart, Sword, Palette, Wallet, Settings, LogOut } from "lucide-react"
+import { useState, useEffect } from "react"
+
 
 interface NavigationProps {
   activeSection: string
   onNavigate: (section: string) => void
 }
 
+interface WalletState {
+  isConnected: boolean
+  address: string
+  balance: string
+  isLoading: boolean
+}
+
 export function Navigation({ activeSection, onNavigate }: NavigationProps) {
+  const [wallet, setWallet] = useState<WalletState>({
+    isConnected: false,
+    address: "",
+    balance: "0.0",
+    isLoading: false
+  })
+
   const navItems = [
     { id: "hero", label: "Home", icon: Home },
     { id: "dashboard", label: "Dashboard", icon: User },
@@ -25,6 +41,145 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
     { id: "arena", label: "Arena", icon: Sword },
     { id: "gallery", label: "NFT Gallery", icon: Palette },
   ]
+
+  // Check if MetaMask is installed
+  const isMetaMaskInstalled = () => {
+    return typeof window !== "undefined" && typeof window.ethereum !== "undefined"
+  }
+
+  // Connect to MetaMask
+  const connectWallet = async () => {
+    if (!isMetaMaskInstalled()) {
+      alert("Please install MetaMask to connect your wallet")
+      return
+    }
+
+    try {
+      setWallet(prev => ({ ...prev, isLoading: true }))
+      
+      // Request account access
+      if (!window.ethereum) {
+        throw new Error("MetaMask is not installed")
+      }
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts"
+      })
+
+      if (accounts.length > 0) {
+        const address = accounts[0]
+        await getBalance(address)
+        setWallet(prev => ({ 
+          ...prev, 
+          isConnected: true, 
+          address,
+          isLoading: false 
+        }))
+      }
+    } catch (error) {
+      console.error("Error connecting to MetaMask:", error)
+      setWallet(prev => ({ ...prev, isLoading: false }))
+    }
+  }
+
+  // Get balance from MetaMask
+  const getBalance = async (address: string) => {
+    try {
+      // Get balance in Wei
+            if (!window.ethereum) {
+        throw new Error("MetaMask is not installed")
+      }
+      const balanceWei = await window.ethereum.request({
+        method: "eth_getBalance",
+        params: [address, "latest"]
+      })
+
+      // Convert Wei to Ether (assuming MONAD has 18 decimals like ETH)
+      const balanceEth = (parseInt(balanceWei, 16) / Math.pow(10, 18)).toFixed(2)
+      
+      setWallet(prev => ({ ...prev, balance: balanceEth }))
+    } catch (error) {
+      console.error("Error getting balance:", error)
+    }
+  }
+
+  // Check if already connected on component mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (isMetaMaskInstalled()) {
+        try {
+                if (!window.ethereum) {
+        throw new Error("MetaMask is not installed")
+      }
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts"
+          })
+          
+          if (accounts.length > 0) {
+            const address = accounts[0]
+            await getBalance(address)
+            setWallet(prev => ({ 
+              ...prev, 
+              isConnected: true, 
+              address 
+            }))
+          }
+        } catch (error) {
+          console.error("Error checking connection:", error)
+        }
+      }
+    }
+
+    checkConnection()
+
+    // Listen for account changes
+    if (isMetaMaskInstalled()) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length === 0) {
+          // User disconnected
+          setWallet({
+            isConnected: false,
+            address: "",
+            balance: "0.0",
+            isLoading: false
+          })
+        } else {
+          // User switched accounts
+          const address = accounts[0]
+          getBalance(address)
+          setWallet(prev => ({ ...prev, address }))
+        }
+      }
+            if (!window.ethereum) {
+        throw new Error("MetaMask is not installed")
+      }
+
+      window.ethereum.on("accountsChanged", handleAccountsChanged)
+
+      // Cleanup
+      return () => {
+              if (!window.ethereum) {
+        throw new Error("MetaMask is not installed")
+      }
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
+      }
+    }
+  }, [])
+
+  // Disconnect wallet
+  const disconnectWallet = () => {
+    setWallet({
+      isConnected: false,
+      address: "",
+      balance: "0.0",
+      isLoading: false
+    })
+  }
+
+  // Format address for display
+  const formatAddress = (address: string) => {
+    if (!address) return ""
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -60,50 +215,88 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
           {/* Wallet & User Menu */}
           <div className="flex items-center gap-4">
             {/* Wallet Status */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
-              <div className="w-2 h-2 rounded-full bg-gaming-neon animate-pulse"></div>
-              <span className="text-sm font-mono">25.7 MONAD</span>
-            </div>
+            {wallet.isConnected ? (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+                <div className="w-2 h-2 rounded-full bg-gaming-neon animate-pulse"></div>
+                <span className="text-sm font-mono">
+                  {wallet.isLoading ? "Loading..." : `${wallet.balance} MONAD`}
+                </span>
+              </div>
+            ) : (
+              <Button 
+                size="sm" 
+                onClick={connectWallet}
+                disabled={wallet.isLoading}
+                className="hidden sm:flex"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                {wallet.isLoading ? "Connecting..." : "Connect Wallet"}
+              </Button>
+            )}
 
             {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                    <AvatarFallback>SW</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden sm:inline">ShadowWarrior_99</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">ShadowWarrior_99</p>
-                  <p className="text-xs text-muted-foreground">0xcv1234...5678</p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="w-4 h-4 mr-2" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Wallet
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-400">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Disconnect
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {wallet.isConnected ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                      <AvatarFallback>SW</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">ShadowWarrior_99</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-medium">ShadowWarrior_99</p>
+                    <p className="text-xs text-muted-foreground">{formatAddress(wallet.address)}</p>
+                    <p className="text-xs text-gaming-neon mt-1">{wallet.balance} MONAD</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Wallet Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-400" onClick={disconnectWallet}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Disconnect
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                size="sm" 
+                onClick={connectWallet}
+                disabled={wallet.isLoading}
+                className="sm:hidden"
+              >
+                <Wallet className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
     </nav>
   )
+}
+
+// Type declaration for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean
+      request: (args: { method: string; params?: any[] }) => Promise<any>
+      on: (event: string, callback: (...args: any[]) => void) => void
+      removeListener: (event: string, callback: (...args: any[]) => void) => void
+    }
+  }
 }

@@ -26,6 +26,18 @@ interface WalletState {
   isLoading: boolean
 }
 
+// Type declaration for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean
+      request: (args: { method: string; params?: any[] }) => Promise<any>
+      on: (event: string, callback: (...args: any[]) => void) => void
+      removeListener: (event: string, callback: (...args: any[]) => void) => void
+    }
+  }
+}
+
 export function Navigation({ activeSection, onNavigate }: NavigationProps) {
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
@@ -85,7 +97,7 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
   const getBalance = async (address: string) => {
     try {
       // Get balance in Wei
-            if (!window.ethereum) {
+      if (!window.ethereum) {
         throw new Error("MetaMask is not installed")
       }
       const balanceWei = await window.ethereum.request({
@@ -107,9 +119,9 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
     const checkConnection = async () => {
       if (isMetaMaskInstalled()) {
         try {
-                if (!window.ethereum) {
-        throw new Error("MetaMask is not installed")
-      }
+          if (!window.ethereum) {
+            throw new Error("MetaMask is not installed")
+          }
           const accounts = await window.ethereum.request({
             method: "eth_accounts"
           })
@@ -149,18 +161,16 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
           setWallet(prev => ({ ...prev, address }))
         }
       }
-            if (!window.ethereum) {
-        throw new Error("MetaMask is not installed")
-      }
 
-      window.ethereum.on("accountsChanged", handleAccountsChanged)
+      if (window.ethereum) {
+        window.ethereum.on("accountsChanged", handleAccountsChanged)
 
-      // Cleanup
-      return () => {
-              if (!window.ethereum) {
-        throw new Error("MetaMask is not installed")
-      }
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
+        // Cleanup
+        return () => {
+          if (window.ethereum) {
+            window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
+          }
+        }
       }
     }
   }, [])
@@ -182,16 +192,16 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950/90 backdrop-blur-md border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sword className="w-5 h-5 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+              <Sword className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold neon-text">ShadowFighters</span>
-            <Badge variant="outline" className="text-gaming-neon border-gaming-neon">
+            <span className="text-xl font-bold text-white">ShadowFighters</span>
+            <Badge variant="outline" className="text-purple-400 border-purple-400 bg-purple-400/10">
               Monad
             </Badge>
           </div>
@@ -204,7 +214,11 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
                 variant={activeSection === item.id ? "default" : "ghost"}
                 size="sm"
                 onClick={() => onNavigate(item.id)}
-                className={activeSection === item.id ? "bg-primary text-primary-foreground" : ""}
+                className={
+                  activeSection === item.id 
+                    ? "bg-purple-600 text-white hover:bg-purple-700" 
+                    : "text-gray-300 hover:text-white hover:bg-gray-800"
+                }
               >
                 <item.icon className="w-4 h-4 mr-2" />
                 {item.label}
@@ -216,9 +230,9 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
           <div className="flex items-center gap-4">
             {/* Wallet Status */}
             {wallet.isConnected ? (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
-                <div className="w-2 h-2 rounded-full bg-gaming-neon animate-pulse"></div>
-                <span className="text-sm font-mono">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50">
+                <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
+                <span className="text-sm font-mono text-gray-300">
                   {wallet.isLoading ? "Loading..." : `${wallet.balance} MONAD`}
                 </span>
               </div>
@@ -227,7 +241,7 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
                 size="sm" 
                 onClick={connectWallet}
                 disabled={wallet.isLoading}
-                className="hidden sm:flex"
+                className="hidden sm:flex bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Wallet className="w-4 h-4 mr-2" />
                 {wallet.isLoading ? "Connecting..." : "Connect Wallet"}
@@ -238,35 +252,35 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
             {wallet.isConnected ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-300 hover:text-white hover:bg-gray-800">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                      <AvatarFallback>SW</AvatarFallback>
+                      <AvatarFallback className="bg-purple-600 text-white">SW</AvatarFallback>
                     </Avatar>
                     <span className="hidden sm:inline">ShadowWarrior_99</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">ShadowWarrior_99</p>
-                    <p className="text-xs text-muted-foreground">{formatAddress(wallet.address)}</p>
-                    <p className="text-xs text-gaming-neon mt-1">{wallet.balance} MONAD</p>
+                    <p className="text-sm font-medium text-white">ShadowWarrior_99</p>
+                    <p className="text-xs text-gray-400">{formatAddress(wallet.address)}</p>
+                    <p className="text-xs text-purple-400 mt-1">{wallet.balance} MONAD</p>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
                     <User className="w-4 h-4 mr-2" />
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
                     <Wallet className="w-4 h-4 mr-2" />
                     Wallet Details
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-400" onClick={disconnectWallet}>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem className="text-red-400 hover:bg-red-950 hover:text-red-300" onClick={disconnectWallet}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Disconnect
                   </DropdownMenuItem>
@@ -277,7 +291,7 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
                 size="sm" 
                 onClick={connectWallet}
                 disabled={wallet.isLoading}
-                className="sm:hidden"
+                className="sm:hidden bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Wallet className="w-4 h-4" />
               </Button>
@@ -287,16 +301,4 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
       </div>
     </nav>
   )
-}
-
-// Type declaration for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: {
-      isMetaMask?: boolean
-      request: (args: { method: string; params?: any[] }) => Promise<any>
-      on: (event: string, callback: (...args: any[]) => void) => void
-      removeListener: (event: string, callback: (...args: any[]) => void) => void
-    }
-  }
 }

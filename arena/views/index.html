@@ -1,22 +1,910 @@
-<html>
-  <head>
-    <title>Stick Fighter</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stick Fighter Arena</title>
     <style>
-      #canvas-container {
-        width: 100%;
-        text-align: center;
-      }
-      canvas {
-        display: inline-block;
-        border: 5px solid black;
-      }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 3px solid #00d4ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .game-title {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            letter-spacing: 3px;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .ping-display {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid #00d4ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .connection-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: #ff4757;
+            color: white;
+            animation: pulse 2s infinite;
+            border: 2px solid #ff4757;
+        }
+
+        .connection-status.connected {
+            background: linear-gradient(45deg, #00ff88, #00d4aa);
+            color: #1a1a2e;
+            animation: none;
+            border-color: #00ff88;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .players-hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(15, 52, 96, 0.6));
+            backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .player-info.player1 {
+            align-items: flex-start;
+        }
+
+        .player-info.player2 {
+            align-items: flex-end;
+        }
+
+        .player-name {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player1 .player-name {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+            box-shadow: 0 6px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .player2 .player-name {
+            background: linear-gradient(135deg, #ff4757, #ee5a24);
+            color: white;
+            box-shadow: 0 6px 25px rgba(255, 71, 87, 0.4);
+        }
+
+        .player-name::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .player-name:hover::before {
+            left: 100%;
+        }
+
+        .hp-container {
+            width: 100%;
+            max-width: 280px;
+            position: relative;
+        }
+
+        .hp-label {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+            text-align: center;
+        }
+
+        .hp-bar {
+            width: 100%;
+            height: 30px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(22, 33, 62, 0.9));
+            border: 3px solid #333;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 4px 8px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00d4aa, #00ff88);
+            background-size: 200% 100%;
+            animation: healthShimmer 3s ease-in-out infinite;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
+            position: relative;
+            box-shadow: 
+                0 0 15px rgba(0, 255, 136, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes healthShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hp-fill.medium {
+            background: linear-gradient(90deg, #ffa502, #ff7675, #ffa502);
+            box-shadow: 
+                0 0 15px rgba(255, 165, 2, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        .hp-fill.low {
+            background: linear-gradient(90deg, #ff4757, #ff3742, #ff4757);
+            box-shadow: 
+                0 0 15px rgba(255, 71, 87, 0.6),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        .hp-fill.critical {
+            background: linear-gradient(90deg, #ff3742, #c44569, #ff3742);
+            animation: criticalPulse 0.6s infinite alternate, healthShimmer 1s ease-in-out infinite;
+            box-shadow: 
+                0 0 25px rgba(255, 55, 66, 0.8),
+                inset 0 2px 4px rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes criticalPulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.02); opacity: 0.8; }
+        }
+
+        .hp-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+            z-index: 3;
+            letter-spacing: 1px;
+        }
+
+        .hp-damage-indicator {
+            position: absolute;
+            top: -30px;
+            right: 20px;
+            color: #ff4757;
+            font-weight: 900;
+            font-size: 18px;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hp-damage-indicator.show {
+            animation: damageFloat 1.5s ease-out;
+        }
+
+        @keyframes damageFloat {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-40px); }
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+        }
+
+        #gameCanvas {
+            border: 4px solid;
+            border-image: linear-gradient(45deg, #00d4ff, #00ff88, #00d4ff) 1;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(0, 212, 255, 0.4),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, 
+                #1a1a2e 0%, 
+                #16213e 25%, 
+                #0f3460 50%, 
+                #16213e 75%, 
+                #1a1a2e 100%);
+            position: relative;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            border-radius: 11px;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.15) 0%, transparent 40%),
+                linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0%, transparent 100%);
+        }
+
+        .round-indicator {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(15, 52, 96, 0.95));
+            color: #00d4ff;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: 900;
+            font-size: 18px;
+            border: 3px solid #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.4);
+            z-index: 10;
+            letter-spacing: 2px;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #aaa;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 400;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .waiting-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(15, 52, 96, 0.95));
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .waiting-text {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .loading-dots {
+            font-size: 40px;
+            color: #00d4ff;
+            animation: loadingPulse 2s infinite;
+            letter-spacing: 10px;
+        }
+
+        @keyframes loadingPulse {
+            0%, 20% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.3; transform: scale(1); }
+        }
+
+        .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(15, 52, 96, 0.95));
+            backdrop-filter: blur(15px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+        }
+
+        .game-over-text {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+
+        .game-over-text.victory {
+            background: linear-gradient(45deg, #00ff88, #00d4aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+        }
+
+        .game-over-text.defeat {
+            background: linear-gradient(45deg, #ff4757, #ff3742);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 71, 87, 0.6);
+        }
+
+        .restart-button {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            border: none;
+            border-radius: 25px;
+            color: #1a1a2e;
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 20px;
+            }
+            
+            .players-hud {
+                flex-direction: column;
+                gap: 20px;
+                padding: 15px;
+            }
+            
+            .player-info {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .player-info.player1,
+            .player-info.player2 {
+                align-items: center;
+            }
+            
+            #gameCanvas {
+                width: 100%;
+                max-width: 600px;
+                height: auto;
+            }
+        }
     </style>
     <script src="/socket.io/socket.io.js"></script>
-  </head>
-  <body>
-    <div id="canvas-container">
-      <canvas id="canvas" width="800" height="600"></canvas>
+</head>
+<body>
+    <div class="game-header">
+        <div class="game-title">STICK FIGHTER ARENA</div>
+        <div class="game-stats">
+            <div class="ping-display" id="pingDisplay">Ping: --ms</div>
+            <div class="connection-status" id="connectionStatus">CONNECTING...</div>
+        </div>
     </div>
-  </body>
-  <script src="/build/client.bundle.js"></script>
+
+    <div class="players-hud">
+        <div class="player-info player1">
+            <div class="player-name" id="player1Name">PLAYER 1</div>
+            <div class="hp-container">
+                <div class="hp-label">HEALTH POINTS</div>
+                <div class="hp-bar">
+                    <div class="hp-fill" id="player1HP" style="width: 100%;"></div>
+                    <div class="hp-text" id="player1HPText">100 / 100</div>
+                </div>
+                <div class="hp-damage-indicator" id="player1Damage"></div>
+            </div>
+        </div>
+
+        <div class="player-info player2">
+            <div class="player-name" id="player2Name">PLAYER 2</div>
+            <div class="hp-container">
+                <div class="hp-label">HEALTH POINTS</div>
+                <div class="hp-bar">
+                    <div class="hp-fill" id="player2HP" style="width: 100%;"></div>
+                    <div class="hp-text" id="player2HPText">100 / 100</div>
+                </div>
+                <div class="hp-damage-indicator" id="player2Damage"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <div class="round-indicator" id="roundIndicator">Fight</div>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div class="canvas-overlay"></div>
+        <div class="controls-hint">WASD + K to fight • Real-time PvP Combat</div>
+        
+        <div class="waiting-screen" id="waitingScreen">
+            <div class="waiting-text">Waiting for opponent...</div>
+            <div class="loading-dots">●●●</div>
+        </div>
+
+        <div class="game-over-screen" id="gameOverScreen">
+            <div class="game-over-text" id="gameOverText">VICTORY!</div>
+            <button class="restart-button" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state management
+        let gameState = {
+            connected: false,
+            players: [
+                { name: 'PLAYER 1', hp: 100, maxHP: 100, id: 'player1', position: { x: 200, y: 340 }, animation: { spriteKey: 'stickman', index: 0 }, attacking: false, attackCooldown: false, invulnerable: false },
+                { name: 'PLAYER 2', hp: 100, maxHP: 100, id: 'player2', position: { x: 600, y: 340 }, animation: { spriteKey: 'stickmanR', index: 0 }, attacking: false, attackCooldown: false, invulnerable: false }
+            ],
+            round: 1,
+            gameStarted: false,
+            gameEnded: false,
+            latency: 0
+        };
+        // This object is no longer needed as we check the main gameState
+        let previousPlayerHP = {
+            player1: 100,
+            player2: 100
+        };
+
+        // Socket.io integration
+        const socket = io();
+
+        // Key mapping from your existing code
+        const keyMap = {
+            87: 'up',   // W
+            83: 'down', // S
+            65: 'left', // A
+            68: 'right',// D
+            75: 'attack'// K
+        };
+
+        let inputs = {};
+
+        // Button handling from your existing code
+        const setButton = (button, value) => {
+            if (button !== undefined && inputs[button] !== value) {
+                inputs[button] = value;
+                socket.emit("setButton", {button: button, value: value});
+            }
+        };
+
+        // Event listeners for keyboard controls
+        document.addEventListener("keydown", function(e) {
+            let button = keyMap[e.keyCode];
+            setButton(button, true);
+            // Simulate attack action for demo
+            if (button === 'attack' && gameState.gameStarted && !gameState.gameEnded) {
+                // In this demo, Player 1 is the attacker
+                const myPlayer = gameState.players[0];
+                const otherPlayer = gameState.players[1];
+                if (!myPlayer.attackCooldown) {
+                    myPlayer.attacking = true;
+                    // Reset attack animation after a short period
+                    setTimeout(() => {
+                        myPlayer.attacking = false;
+                    }, 500); // 0.5 second attack animation
+                    
+                    myPlayer.attackCooldown = true;
+                    // Reset cooldown after a longer period
+                    setTimeout(() => {
+                        myPlayer.attackCooldown = false;
+                    }, 1000); // 1 second cooldown
+
+                    // Simulate a hit if the players are close enough
+                    if (checkAttackCollision(myPlayer, otherPlayer)) {
+                        // THIS IS THE KEY CHANGE: Call the function that handles game logic
+                        handlePlayerHit('player2', 15); // Player 2 takes 15 damage
+                    }
+                }
+            }
+        });
+
+        document.addEventListener("keyup", function(e) {
+            let button = keyMap[e.keyCode];
+            setButton(button, false);
+        });
+
+        // Socket event handlers
+        socket.on("message", function(data) {
+            console.log(data);
+        });
+
+        socket.on("sendState", function(state) {
+            // This function is for receiving updates from the server.
+            // For the local demo, we let our own actions control the state.
+            // In a real multiplayer game, you'd reconcile the server state here.
+            
+            if (state.players && state.players.length >= 2) {
+                // This logic is fine for updating based on server messages
+                const player1CurrentHP = state.players[0].hp || 100;
+                const player2CurrentHP = state.players[1].hp || 100;
+                
+                let player1Damage = 0;
+                if (player1CurrentHP < previousPlayerHP.player1) {
+                    player1Damage = previousPlayerHP.player1 - player1CurrentHP;
+                }
+                
+                let player2Damage = 0;
+                if (player2CurrentHP < previousPlayerHP.player2) {
+                    player2Damage = previousPlayerHP.player2 - player2CurrentHP;
+                }
+                
+                updatePlayerHP('player1', player1CurrentHP, state.players[0].maxHP || 100, player1Damage);
+                updatePlayerHP('player2', player2CurrentHP, state.players[1].maxHP || 100, player2Damage);
+                
+                previousPlayerHP.player1 = player1CurrentHP;
+                previousPlayerHP.player2 = player2CurrentHP;
+                
+                if (state.players[0].name) updatePlayerName('player1', state.players[0].name);
+                if (state.players[1].name) updatePlayerName('player2', state.players[1].name);
+
+                // Update local player state with server's state
+                gameState.players = state.players;
+            }
+            
+            gameState.latency = state.latency;
+            if (window.drawHandler) {
+                window.drawHandler.draw(state);
+            }
+        });
+
+        socket.on('pong', function(latency) {
+            gameState.latency = latency;
+            updatePingDisplay(latency);
+        });
+
+        socket.on('connect', () => {
+            updateConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', () => {
+            updateConnectionStatus(false);
+            showWaitingScreen();
+        });
+
+        // Enhanced DrawHandler class that integrates with your existing sprite system
+        class EnhancedDrawHandler {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.context = canvas.getContext('2d');
+                this.sprites = {};
+                this.initializeSprites();
+            }
+
+            initializeSprites() {
+                const IMG_PATH = "/img"; // This path must be valid for images to load.
+                const spriteData = [
+                    { spriteKey: 'stickman', filename: 'stickman.png', cellSize: {x: 64, y: 64}, offset: {x: -32, y: -62} },
+                    { spriteKey: 'stickmanR', filename: 'stickmanR.png', cellSize: {x: 64, y: 64}, offset: {x: -32, y: -62} },
+                    { spriteKey: 'stickmanAttacks', filename: 'stickmanAttacks.png', cellSize: {x: 128, y: 64}, offset: {x: -96, y: -62} },
+                    { spriteKey: 'stickmanAttacksR', filename: 'stickmanAttacksR.png', cellSize: {x: 128, y: 64}, offset: {x: -32, y: -62} },
+                    { spriteKey: 'stickmanShadow', filename: 'stickmanShadow.png', cellSize: {x: 64, y: 32}, offset: {x: -32, y: -16} }
+                ];
+                spriteData.forEach(({spriteKey, filename, cellSize, offset}) => {
+                    let image = new Image();
+                    // NOTE: Image loading is asynchronous. A real implementation should wait for images to load.
+                    image.src = `${IMG_PATH}/${filename}`;
+                    this.sprites[spriteKey] = {
+                        image: image,
+                        cellSize: cellSize,
+                        offset: offset,
+                        draw: (context, x, y) => {
+                            this.drawSprite(context, spriteKey, 0, x, y);
+                        },
+                        drawIndex: (context, index, x, y) => {
+                            this.drawSprite(context, spriteKey, index, x, y);
+                        }
+                    };
+                });
+            }
+
+            drawSprite(context, spriteKey, index, x, y) {
+                const sprite = this.sprites[spriteKey];
+                if (!sprite || !sprite.image.complete || sprite.image.naturalHeight === 0) return; // Don't draw if image not loaded
+
+                context.drawImage(
+                    sprite.image,
+                    sprite.cellSize.x * index, 0,
+                    sprite.cellSize.x, sprite.cellSize.y,
+                    x + sprite.offset.x, y + sprite.offset.y,
+                    sprite.cellSize.x, sprite.cellSize.y
+                );
+            }
+
+            drawBackground() {
+                // This is a simplified version of your background for demonstration
+                this.context.fillStyle = '#1a1a2e';
+                this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.context.fillStyle = '#2c3e50';
+                this.context.fillRect(0, this.canvas.height - 60, this.canvas.width, 60);
+            }
+
+            draw(state) {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.drawBackground();
+
+                // Use the centrally managed gameState for drawing
+                const playersToDraw = gameState.players.slice().sort((a, b) => a.position.y - b.position.y);
+
+                playersToDraw.forEach((player) => {
+                    if (this.sprites['stickmanShadow']) {
+                        this.sprites['stickmanShadow'].draw(this.context, player.position.x, player.position.y);
+                    }
+                    
+                    let {spriteKey, index} = player.animation;
+                    if (this.sprites[spriteKey]) {
+                        this.sprites[spriteKey].drawIndex(this.context, index, player.position.x, player.position.y);
+                    }
+                });
+            }
+        }
+
+        // Initialize canvas and create enhanced draw handler
+        function initializeCanvas() {
+            const canvas = document.getElementById('gameCanvas');
+            window.drawHandler = new EnhancedDrawHandler(canvas);
+            // Start a render loop to continuously draw the game state
+            setInterval(() => {
+                if (window.drawHandler) {
+                    window.drawHandler.draw(gameState);
+                }
+            }, 1000 / 60); // ~60 FPS
+        }
+
+        // **FIXED** Enhanced HP update with damage indicators and game-over check
+        function updatePlayerHP(player, currentHP, maxHP, damage = 0) {
+            const hpFill = document.getElementById(`${player}HP`);
+            const hpText = document.getElementById(`${player}HPText`);
+            const damageIndicator = document.getElementById(`${player}Damage`);
+            
+            if (damage > 0) {
+                damageIndicator.textContent = `-${damage}`;
+                damageIndicator.classList.add('show');
+                setTimeout(() => {
+                    damageIndicator.classList.remove('show');
+                }, 1500);
+            }
+            
+            const percentage = Math.max(0, (currentHP / maxHP) * 100);
+            hpFill.style.width = percentage + '%';
+            hpText.textContent = `${Math.max(0, Math.round(currentHP))} / ${maxHP}`;
+            
+            hpFill.classList.remove('medium', 'low', 'critical');
+            if (percentage <= 15) {
+                hpFill.classList.add('critical');
+            } else if (percentage <= 35) {
+                hpFill.classList.add('low');
+            } else if (percentage <= 65) {
+                hpFill.classList.add('medium');
+            }
+            
+            // **FIXED** Check for game over condition
+            if (currentHP <= 0 && !gameState.gameEnded) {
+                gameState.gameEnded = true;
+                // Assuming the local user is Player 1, they win if Player 2 is defeated.
+                const localPlayerWon = (player === 'player2');
+                showGameOver(localPlayerWon);
+            }
+        }
+
+        // **FIXED** Game logic function to handle player attacks and health reduction
+        function handlePlayerHit(playerId, damage) {
+            const playerIndex = playerId === 'player1' ? 0 : 1;
+            const currentPlayer = gameState.players[playerIndex];
+            
+            if (currentPlayer.hp <= 0 || currentPlayer.invulnerable || gameState.gameEnded) {
+                return;
+            }
+            
+            const newHP = Math.max(0, currentPlayer.hp - damage);
+            currentPlayer.hp = newHP; // Update health in the central game state
+
+            // **FIXED** Trigger the visual update and game-over check
+            updatePlayerHP(playerId, newHP, currentPlayer.maxHP, damage);
+            
+            // Set temporary invulnerability to prevent multiple hits in a short time
+            currentPlayer.invulnerable = true;
+            setTimeout(() => {
+                currentPlayer.invulnerable = false;
+            }, 500); // 0.5 seconds of invulnerability
+        }
+
+        // Basic collision detection based on distance
+        function checkAttackCollision(attacker, target) {
+            const attackRange = 80;
+            const distance = Math.sqrt(
+                Math.pow(attacker.position.x - target.position.x, 2) + 
+                Math.pow(attacker.position.y - target.position.y, 2)
+            );
+            
+            return distance < attackRange && attacker.attacking;
+        }
+
+        // Update player name with enhanced styling
+        function updatePlayerName(player, name) {
+            document.getElementById(`${player}Name`).textContent = name.toUpperCase();
+            const playerIndex = player === 'player1' ? 0 : 1;
+            gameState.players[playerIndex].name = name;
+        }
+
+        // Update connection status with enhanced visuals
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            gameState.connected = connected;
+            
+            if (connected) {
+                statusElement.textContent = 'CONNECTED';
+                statusElement.classList.add('connected');
+            } else {
+                statusElement.textContent = 'DISCONNECTED';
+                statusElement.classList.remove('connected');
+            }
+        }
+
+        // Update ping display
+        function updatePingDisplay(latency) {
+            const pingElement = document.getElementById('pingDisplay');
+            pingElement.textContent = `Ping: ${latency}ms`;
+            
+            if (latency < 50) {
+                pingElement.style.color = '#00ff88';
+                pingElement.style.borderColor = '#00ff88';
+            } else if (latency < 100) {
+                pingElement.style.color = '#ffa502';
+                pingElement.style.borderColor = '#ffa502';
+            } else {
+                pingElement.style.color = '#ff4757';
+                pingElement.style.borderColor = '#ff4757';
+            }
+        }
+
+        // Game flow controls
+        function startGame() {
+            gameState.gameStarted = true;
+            gameState.gameEnded = false;
+            document.getElementById('waitingScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+        }
+
+        function showWaitingScreen() {
+            gameState.gameStarted = false;
+            gameState.gameEnded = false;
+            document.getElementById('waitingScreen').style.display = 'flex';
+            document.getElementById('gameOverScreen').style.display = 'none';
+        }
+
+        function showGameOver(playerWon) {
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverText = document.getElementById('gameOverText');
+            
+            if (playerWon) {
+                gameOverText.textContent = 'VICTORY!';
+                gameOverText.className = 'game-over-text victory';
+            } else {
+                gameOverText.textContent = 'DEFEAT!';
+                gameOverText.className = 'game-over-text defeat';
+            }
+            
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function restartGame() {
+            // **FIXED** Reset game ended state
+            gameState.gameEnded = false;
+            gameState.players[0].hp = 100;
+            gameState.players[1].hp = 100;
+            updatePlayerHP('player1', 100, 100);
+            updatePlayerHP('player2', 100, 100);
+            
+            // For a local demo, we can go back to the "fight" screen
+            // In a real game, you might go back to a waiting screen
+            document.getElementById('gameOverScreen').style.display = 'none';
+            
+            // In a real multiplayer game, you would notify the server
+            // socket.emit('restartGame');
+        }
+
+        function initializeGame() {
+            initializeCanvas();
+            updateConnectionStatus(false);
+            showWaitingScreen();
+            
+            // Demo start sequence
+            setTimeout(() => {
+                updateConnectionStatus(true);
+                updatePlayerName('player1', 'WARRIOR');
+                updatePlayerName('player2', 'NINJA');
+                startGame();
+            }, 2000);
+        }
+
+        window.addEventListener('load', () => {
+            initializeGame();
+        });
+    </script>
+</body>
 </html>

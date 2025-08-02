@@ -38,18 +38,11 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
     setIsClient(true)
   }, [])
 
-  // Check if MetaMask is installed
+  // Check if MetaMask is installed and for existing connections
   useEffect(() => {
-    const checkMetaMask = () => {
-      if (typeof window !== "undefined") {
-        setIsMetaMaskInstalled(!!window.ethereum?.isMetaMask)
-      }
-    }
-    
-    checkMetaMask()
-    
-    // Check for already connected accounts
-    if (window.ethereum) {
+    if (typeof window !== "undefined" && window.ethereum) {
+      setIsMetaMaskInstalled(!!window.ethereum.isMetaMask)
+      
       window.ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
           if (accounts.length > 0) {
@@ -60,22 +53,14 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
     }
   }, [])
 
-  // Handle account changes
+  // Handle wallet account and network changes
   useEffect(() => {
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0])
-          setWalletError("")
-        } else {
-          setWalletAddress("")
-        }
+        setWalletAddress(accounts.length > 0 ? accounts[0] : "")
+        if (accounts.length > 0) setWalletError("")
       }
-
-      const handleChainChanged = () => {
-        // Reload the page when chain changes
-        window.location.reload()
-      }
+      const handleChainChanged = () => window.location.reload()
 
       window.ethereum.on('accountsChanged', handleAccountsChanged)
       window.ethereum.on('chainChanged', handleChainChanged)
@@ -89,29 +74,19 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
 
   const connectWallet = async () => {
     if (!window.ethereum) {
-      setWalletError("MetaMask is not installed")
+      setWalletError("MetaMask is not installed. Please install it to continue.")
       return
     }
-
     setIsConnecting(true)
     setWalletError("")
-
     try {
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      })
-
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
       if (accounts.length > 0) {
         setWalletAddress(accounts[0])
       }
     } catch (error: any) {
-      if (error.code === 4001) {
-        setWalletError("Connection rejected by user")
-      } else {
-        setWalletError("Failed to connect wallet")
-      }
-      console.error("Error connecting to MetaMask:", error)
+      setWalletError(error.code === 4001 ? "Connection rejected by user." : "Failed to connect wallet.")
+      console.error("MetaMask connection error:", error)
     } finally {
       setIsConnecting(false)
     }
@@ -119,256 +94,117 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
 
   const disconnectWallet = async () => {
     setIsDisconnecting(true)
-    
-    try {
-      // Clear local state immediately
-      setWalletAddress("")
-      setWalletError("")
-      
-      // Method 1: Try to revoke permissions (newer MetaMask versions)
-      if (window.ethereum && window.ethereum.request) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_revokePermissions",
-            params: [{ eth_accounts: {} }]
-          })
-        } catch (revokeError) {
-          try {
-            await window.ethereum.request({
-              method: "wallet_requestPermissions",
-              params: [{ eth_accounts: {} }]
-            })
-          } catch (requestError) {
-            console.log("Please manually disconnect from MetaMask extension")
-          }
-        }
-      }
-      
-      // Clear any stored wallet data in localStorage if you're using it
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("walletConnected")
-        localStorage.removeItem("walletAddress")
-      }
-      
-    } catch (error) {
-      console.error("Error during disconnect:", error)
-      setWalletAddress("")
-      setWalletError("")
-    } finally {
-      setIsDisconnecting(false)
-    }
+    setWalletAddress("")
+    setWalletError("")
+    setIsDisconnecting(false)
   }
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
+  const formatAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`
 
-  const onSplineLoad = () => {
-    setSplineLoaded(true)
-  }
-
-  const onSplineError = (error: any) => {
-    console.error("Spline loading error:", error)
-    setSplineLoaded(false)
-  }
-
-  // Fallback background component
+  // A fallback background for when Spline is loading or on the server
   const FallbackBackground = () => (
-    <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-accent/10" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.15),transparent_60%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(120,119,198,0.15),transparent_60%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:100px_100px] opacity-20" />
+    <div className="absolute inset-0 bg-gray-950">
+      <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" />
+      <div className="absolute left-0 right-0 top-[-10%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#1b6cfd33,transparent)]" />
     </div>
   )
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
-      {/* Spline 3D Background */}
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-gray-950 text-white">
+      {/* Background Layer */}
       <div className="absolute inset-0 z-0">
         {isClient ? (
           <Suspense fallback={<FallbackBackground />}>
             <Spline
-              scene="/scene.splinecode"
-              onLoad={onSplineLoad}
-              onError={onSplineError}
+              scene="/scene.splinecode" // Make sure this path is correct
+              onLoad={() => setSplineLoaded(true)}
               className="w-full h-full object-cover"
             />
           </Suspense>
         ) : (
           <FallbackBackground />
         )}
-        
-        {/* Dark overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
-        
-        {/* Loading fallback background - shown when Spline hasn't loaded */}
-        {(!splineLoaded || !isClient) && <FallbackBackground />}
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        {!splineLoaded && <FallbackBackground />}
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 text-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Content Layer */}
+      <main className="relative z-10 flex flex-col items-center justify-center w-full max-w-7xl mx-auto px-4 py-20 text-center">
+        
         {/* Header Section */}
-        <div className="mb-16 mt-10">
-          <Badge variant="outline" className="mb-8 text-primary border-primary/50 bg-primary/20 backdrop-blur-sm px-4 py-2 text-sm font-medium">
-            {walletAddress ? (
-              <span className="flex items-center gap-2">
-                <Wallet className="w-4 h-4" />
-                Connected: {formatAddress(walletAddress)}
-              </span>
-            ) : (
-               "Connect your wallet to begin"
-            )}
+        <div className="w-full max-w-4xl mb-16">
+           <Badge variant="outline" className="mb-6 border-blue-400/50 bg-blue-900/30 text-blue-300 backdrop-blur-md px-4 py-2 text-sm font-medium">
+            {walletAddress ? `Connected: ${formatAddress(walletAddress)}` : "Connect Your Wallet to Begin"}
           </Badge>
-          
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            <span className="bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent drop-shadow-lg">
+          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tighter leading-tight drop-shadow-2xl">
+            <span className="bg-gradient-to-r from-cyan-300 via-white to-blue-400 bg-clip-text text-transparent">
               NFT Arena
             </span>
-            <span className="block text-2xl sm:text-3xl md:text-4xl mt-4 text-white/90 font-normal leading-relaxed drop-shadow-md">
-              PvP Gaming Platform
-            </span>
           </h1>
+          <p className="mt-4 text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto">
+            The premier PvP gaming platform where skill meets strategy and true asset ownership.
+          </p>
         </div>
 
-        {/* Enhanced Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-16 max-w-5xl mx-auto">
-          <div className="group bg-black/30 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 text-center hover:bg-black/40 transition-all duration-300 hover:scale-105">
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-                <Users className="w-6 h-6 text-primary" />
+        {/* Enhanced Stats Grid is now commented out as requested */}
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-16 max-w-5xl w-full">
+          {[
+            { icon: Users, color: "cyan-400", value: "10,000+", label: "Active Players" },
+            { icon: TrendingUp, color: "green-400", value: "$2.5M+", label: "Total Volume" },
+            { icon: Award, color: "yellow-400", value: "50,000+", label: "Battles Won" },
+            { icon: Zap, color: "blue-400", value: "5,000+", label: "NFT Assets" }
+          ].map((stat, index) => (
+            <div key={index} className="group bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4 text-center hover:bg-black/50 hover:border-white/20 transition-all duration-300 hover:-translate-y-1">
+              <div className="flex items-center justify-center mb-3">
+                <div className={`w-12 h-12 bg-${stat.color}/10 rounded-full flex items-center justify-center group-hover:bg-${stat.color}/20 transition-colors`}>
+                  <stat.icon className={`w-6 h-6 text-${stat.color}`} />
+                </div>
               </div>
+              <div className={`text-2xl font-bold text-${stat.color} mb-1`}>{stat.value}</div>
+              <p className="text-sm text-gray-400">{stat.label}</p>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">10,000+</div>
-            <p className="text-xs sm:text-sm text-white/70">Active Players</p>
-          </div>
-          
-          <div className="group bg-black/30 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 text-center hover:bg-black/40 transition-all duration-300 hover:scale-105">
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
-                <TrendingUp className="w-6 h-6 text-green-500" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-green-500 mb-1">$2.5M+</div>
-            <p className="text-xs sm:text-sm text-white/70">Total Volume</p>
-          </div>
-          
-          <div className="group bg-black/30 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 text-center hover:bg-black/40 transition-all duration-300 hover:scale-105">
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center group-hover:bg-yellow-500/30 transition-colors">
-                <Award className="w-6 h-6 text-yellow-500" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-yellow-500 mb-1">50,000+</div>
-            <p className="text-xs sm:text-sm text-white/70">Battles Completed</p>
-          </div>
-          
-          <div className="group bg-black/30 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 text-center hover:bg-black/40 transition-all duration-300 hover:scale-105">
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                <Zap className="w-6 h-6 text-blue-500" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-blue-500 mb-1">5,000+</div>
-            <p className="text-xs sm:text-sm text-white/70">NFT Assets</p>
-          </div>
-        </div>
+          ))}
+        </div> 
+        */}
 
         {/* Wallet Error Display */}
         {walletError && (
-          <div className="mb-8 p-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded-lg max-w-md mx-auto">
-            <div className="flex items-center gap-2 text-red-300">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm font-medium">{walletError}</span>
-            </div>
+          <div className="mb-8 p-3 bg-red-900/50 backdrop-blur-sm border border-red-500/30 rounded-lg max-w-md mx-auto flex items-center gap-2 text-red-300">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm font-medium">{walletError}</span>
           </div>
         )}
 
-        {/* ===== MODIFIED CTA SECTION ===== */}
-        <div className="mb-20 flex flex-col items-center gap-6">
+        {/* Call to Action Section */}
+        <div className="flex flex-col items-center gap-4">
           {!walletAddress ? (
-            // --- Disconnected State ---
             <>
-              {/* Primary Action */}
-              {isMetaMaskInstalled ? (
-                <Button
-                  size="lg"
-                  className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                  onClick={connectWallet}
-                  disabled={isConnecting}
-                >
-                  <Wallet className="w-5 h-5 mr-2" />
-                  {isConnecting ? "Connecting..." : "Connect Wallet & Play"}
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                  onClick={() => window.open("https://metamask.io/download/", "_blank")}
-                >
-                  Install MetaMask
-                </Button>
-              )}
-
-              {/* Secondary Actions */}
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
-                  onClick={() => onNavigate("arena")}
-                >
-                  Enter Practice Arena
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
-                  onClick={() => onNavigate("marketplace")}
-                >
-                  Explore Marketplace
-                </Button>
+              <Button size="lg" className="w-full max-w-xs bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 h-14 text-lg font-semibold shadow-2xl shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40" onClick={connectWallet} disabled={isConnecting}>
+                <Wallet className="w-5 h-5 mr-2" />
+                {isConnecting ? "Connecting..." : (isMetaMaskInstalled ? "Connect Wallet & Play" : "Install MetaMask")}
+              </Button>
+              <div className="flex gap-4 mt-2">
+                <Button variant="ghost" className="text-gray-400 hover:text-cyan-300" onClick={() => onNavigate("arena")}>Practice First</Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-cyan-300" onClick={() => onNavigate("marketplace")}>Explore Marketplace</Button>
               </div>
             </>
           ) : (
-            // --- Connected State ---
             <>
-              {/* Primary Action */}
-              <Button
-                size="lg"
-                className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                onClick={() => onNavigate("arena")}
-              >
+              <Button size="lg" className="w-full max-w-xs bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 h-14 text-lg font-semibold shadow-2xl shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40" onClick={() => onNavigate("arena")}>
+                <Sword className="w-5 h-5 mr-2" />
                 Enter Arena
               </Button>
-
-              {/* Secondary Actions */}
-              <div className="flex flex-wrap justify-center items-center gap-4">
-                 <Button
-                    variant="outline"
-                    className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
-                    onClick={() => onNavigate("dashboard")}
-                >
-                    Enter Dashboard
-                </Button>
-                 <Button
-                    variant="outline"
-                    className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
-                    onClick={() => onNavigate("marketplace")}
-                >
-                    Explore Marketplace
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="text-white/70 hover:text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
-                  onClick={disconnectWallet}
-                  disabled={isDisconnecting}
-                >
-                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+              <div className="flex flex-wrap justify-center items-center gap-4 mt-2">
+                <Button variant="ghost" className="text-gray-400 hover:text-cyan-300" onClick={() => onNavigate("dashboard")}>Dashboard</Button>
+                <Button variant="ghost" className="text-gray-400 hover:text-cyan-300" onClick={() => onNavigate("marketplace")}>Marketplace</Button>
+                <Button variant="ghost" className="text-gray-500 hover:text-red-400" onClick={disconnectWallet} disabled={isDisconnecting}>
+                  {isDisconnecting ? "..." : "Disconnect"}
                 </Button>
               </div>
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

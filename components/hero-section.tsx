@@ -104,18 +104,6 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
 
       if (accounts.length > 0) {
         setWalletAddress(accounts[0])
-        
-        // Optional: Switch to a specific network (e.g., Ethereum mainnet)
-        // try {
-        //   await window.ethereum.request({
-        //     method: 'wallet_switchEthereumChain',
-        //     params: [{ chainId: '0x1' }], // Ethereum mainnet
-        //   })
-        // } catch (switchError: any) {
-        //   if (switchError.code === 4902) {
-        //     // Network not added, you could add it here
-        //   }
-        // }
       }
     } catch (error: any) {
       if (error.code === 4001) {
@@ -145,15 +133,12 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
             params: [{ eth_accounts: {} }]
           })
         } catch (revokeError) {
-          // If revoke doesn't work, try requesting new permissions
-          // This will show MetaMask popup asking user to reconnect
           try {
             await window.ethereum.request({
               method: "wallet_requestPermissions",
               params: [{ eth_accounts: {} }]
             })
           } catch (requestError) {
-            // Both methods failed, but we've cleared local state
             console.log("Please manually disconnect from MetaMask extension")
           }
         }
@@ -167,7 +152,6 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
       
     } catch (error) {
       console.error("Error during disconnect:", error)
-      // Ensure local state is cleared even if disconnect fails
       setWalletAddress("")
       setWalletError("")
     } finally {
@@ -201,7 +185,7 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
       {/* Spline 3D Background */}
-      <div className="absolute inset-0 z-100">
+      <div className="absolute inset-0 z-0">
         {isClient ? (
           <Suspense fallback={<FallbackBackground />}>
             <Spline
@@ -233,23 +217,18 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
                 Connected: {formatAddress(walletAddress)}
               </span>
             ) : (
-              ""
+               "Connect your wallet to begin"
             )}
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent drop-shadow-lg">
-              SHADOW FIGHTERS
+              NFT Arena
             </span>
             <span className="block text-2xl sm:text-3xl md:text-4xl mt-4 text-white/90 font-normal leading-relaxed drop-shadow-md">
-              Professional Gaming Platform
+              PvP Gaming Platform
             </span>
           </h1>
-          
-          <p className="text-lg sm:text-xl md:text-2xl text-white/80 mb-12 max-w-4xl mx-auto leading-relaxed px-4 drop-shadow-md">
-            The premier Web3 combat platform where skill meets strategy. Build your professional fighter identity,
-            participate in competitive staking, and trade valuable gaming assets.
-          </p>
         </div>
 
         {/* Enhanced Stats Grid */}
@@ -305,109 +284,89 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
           </div>
         )}
 
-        {/* Enhanced CTA Section */}
-        <div className="mb-20">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-4xl mx-auto">
-            {!walletAddress ? (
-              <>
-                {isMetaMaskInstalled ? (
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                    onClick={connectWallet}
-                    disabled={isConnecting}
-                  >
-                    <Wallet className="w-5 h-5 mr-2" />
-                    {isConnecting ? "Connecting..." : "Connect Wallet & Start Playing"}
-                  </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                    onClick={() => window.open("https://metamask.io/download/", "_blank")}
-                  >
-                    Install MetaMask
-                  </Button>
-                )}
+        {/* ===== MODIFIED CTA SECTION ===== */}
+        <div className="mb-20 flex flex-col items-center gap-6">
+          {!walletAddress ? (
+            // --- Disconnected State ---
+            <>
+              {/* Primary Action */}
+              {isMetaMaskInstalled ? (
                 <Button
                   size="lg"
+                  className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                  onClick={connectWallet}
+                  disabled={isConnecting}
+                >
+                  <Wallet className="w-5 h-5 mr-2" />
+                  {isConnecting ? "Connecting..." : "Connect Wallet & Play"}
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                  onClick={() => window.open("https://metamask.io/download/", "_blank")}
+                >
+                  Install MetaMask
+                </Button>
+              )}
+
+              {/* Secondary Actions */}
+              <div className="flex flex-wrap justify-center gap-4">
+                <Button
                   variant="outline"
-                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white/50 px-8 py-4 text-base sm:text-lg bg-black/20 backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                  className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
                   onClick={() => onNavigate("arena")}
                 >
                   Enter Practice Arena
                 </Button>
-              </>
-            ) : (
-              <>
                 <Button
-                  size="lg"
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
-                  onClick={() => onNavigate("dashboard")}
-                >
-                  Enter Dashboard
-                </Button>
-                <Button
-                  size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white/50 px-8 py-4 text-base sm:text-lg bg-black/20 backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                  onClick={() => onNavigate("arena")}
+                  className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
+                  onClick={() => onNavigate("marketplace")}
                 >
-                  Enter Arena
+                  Explore Marketplace
+                </Button>
+              </div>
+            </>
+          ) : (
+            // --- Connected State ---
+            <>
+              {/* Primary Action */}
+              <Button
+                size="lg"
+                className="w-full max-w-xs sm:max-w-sm bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+                onClick={() => onNavigate("arena")}
+              >
+                Enter Arena
+              </Button>
+
+              {/* Secondary Actions */}
+              <div className="flex flex-wrap justify-center items-center gap-4">
+                 <Button
+                    variant="outline"
+                    className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => onNavigate("dashboard")}
+                >
+                    Enter Dashboard
+                </Button>
+                 <Button
+                    variant="outline"
+                    className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 bg-black/20 backdrop-blur-sm transition-all duration-300"
+                    onClick={() => onNavigate("marketplace")}
+                >
+                    Explore Marketplace
                 </Button>
                 <Button
-                  size="lg"
                   variant="ghost"
-                  className="w-full sm:w-auto text-white/70 hover:text-white hover:bg-white/10 px-8 py-4 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                  className="text-white/70 hover:text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
                   onClick={disconnectWallet}
                   disabled={isDisconnecting}
                 >
-                  {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect"}
                 </Button>
-              </>
-            )}
-            <Button
-              size="lg"
-              variant="ghost"
-              className="w-full sm:w-auto text-white/70 hover:text-white hover:bg-white/10 px-8 py-4 text-base sm:text-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
-              onClick={() => onNavigate("marketplace")}
-            >
-              Explore Marketplace
-            </Button>
-          </div>
-        </div>
-
-        {/* Enhanced Value Propositions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-          <div className="text-center p-6 sm:p-8 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 hover:bg-black/40 transition-all duration-300 hover:scale-105 group">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/30 transition-colors">
-              <Sword className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4 text-white">Skill-Based Competition</h3>
-            <p className="text-white/80 leading-relaxed">
-              Master advanced combat mechanics in a fair, competitive environment where skill determines success.
-            </p>
-          </div>
-          
-          <div className="text-center p-6 sm:p-8 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 hover:bg-black/40 transition-all duration-300 hover:scale-105 group">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-green-500/30 transition-colors">
-              <Coins className="w-8 h-8 text-green-500" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4 text-white">Strategic Investment</h3>
-            <p className="text-white/80 leading-relaxed">
-              Stake MONAD tokens in competitive matches and earn rewards based on your performance and strategy.
-            </p>
-          </div>
-          
-          <div className="text-center p-6 sm:p-8 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 hover:bg-black/40 transition-all duration-300 hover:scale-105 group">
-            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-500/30 transition-colors">
-              <Shield className="w-8 h-8 text-blue-500" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4 text-white">True Asset Ownership</h3>
-            <p className="text-white/80 leading-relaxed">
-              Own your progress, trade valuable accounts, and collect unique NFT assets with cross-platform utility.
-            </p>
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

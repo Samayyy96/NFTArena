@@ -71,40 +71,40 @@ export function GameDashboard() {
   const activeFighter = fighterIDs.find((f) => f.isActive)
 
   return (
-    <div className="min-h-screen p-6 pt-24">
+    <div className="min-h-screen p-6 pt-24 bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Fighter Command Center</h1>
-          <p className="text-muted-foreground">Manage your identities, track progress, and dominate the arena</p>
+          <h1 className="text-4xl font-bold mb-2 text-white">Fighter Command Center</h1>
+          <p className="text-gray-400">Manage your identities, track progress, and dominate the arena</p>
         </div>
 
         <Tabs defaultValue="identities" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="identities">My Fighter IDs</TabsTrigger>
-            <TabsTrigger value="mapping">Address Mapping</TabsTrigger>
-            <TabsTrigger value="create">Create New ID</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
+            <TabsTrigger value="identities" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">My Fighter IDs</TabsTrigger>
+            <TabsTrigger value="mapping" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">Address Mapping</TabsTrigger>
+            <TabsTrigger value="create" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">Create New ID</TabsTrigger>
           </TabsList>
 
           <TabsContent value="identities" className="space-y-6">
             {/* Active Fighter Overview */}
             {activeFighter && (
-              <Card className="bg-gradient-to-r from-gray-100 to-gray-300 border-gray-400">
+              <Card className="bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-blue-500" />
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Trophy className="w-5 h-5 text-blue-400" />
                     Active Fighter
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <Avatar className="w-16 h-16 border-2 border-blue-500">
+                      <Avatar className="w-16 h-16 border-2 border-blue-400">
                         <AvatarImage src="/placeholder.svg?height=64&width=64" />
-                        <AvatarFallback>{activeFighter.username.slice(0, 2)}</AvatarFallback>
+                        <AvatarFallback className="bg-gray-700 text-white">{activeFighter.username.slice(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="text-2xl font-bold">{activeFighter.username}</h3>
-                        <p className="text-muted-foreground">
+                        <h3 className="text-2xl font-bold text-white">{activeFighter.username}</h3>
+                        <p className="text-gray-400">
                           Level {activeFighter.level} • {activeFighter.xp} XP
                         </p>
                         <div className="flex gap-4 mt-2">
@@ -114,17 +114,17 @@ export function GameDashboard() {
                           <Badge variant="outline" className="text-red-400 border-red-400">
                             {activeFighter.losses}L
                           </Badge>
-                          <Badge variant="outline" className="text-blue-500 border-blue-500">
+                          <Badge variant="outline" className="text-blue-400 border-blue-400">
                             {((activeFighter.wins / (activeFighter.wins + activeFighter.losses)) * 100).toFixed(1)}% WR
                           </Badge>
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Wallet Address</p>
-                      <p className="font-mono text-lg">{activeFighter.address}</p>
+                      <p className="text-sm text-gray-400">Wallet Address</p>
+                      <p className="font-mono text-lg text-white">{activeFighter.address}</p>
                       <Progress value={(activeFighter.xp % 200) / 2} className="w-48 mt-2" />
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-gray-400 mt-1">
                         {activeFighter.xp % 200}/200 XP to next level
                       </p>
                     </div>
@@ -138,26 +138,26 @@ export function GameDashboard() {
               {fighterIDs.map((fighter) => (
                 <Card
                   key={fighter.id}
-                  className={`transition-all duration-300 hover:scale-105 cursor-pointer ${
-                    fighter.isActive ? "ring-2 ring-primary bg-primary/10" : "hover:bg-card/80"
+                  className={`transition-all duration-300 hover:scale-105 cursor-pointer bg-gray-800 border-gray-700 ${
+                    fighter.isActive ? "ring-2 ring-blue-400 bg-blue-900/20" : "hover:bg-gray-700"
                   }`}
                   onClick={() => switchFighterID(fighter.id)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{fighter.username}</CardTitle>
-                      {fighter.isActive && <Badge className="bg-blue-500 text-background">Active</Badge>}
+                      <CardTitle className="text-lg text-white">{fighter.username}</CardTitle>
+                      {fighter.isActive && <Badge className="bg-blue-500 text-white">Active</Badge>}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-mono text-sm">{fighter.address}</span>
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-mono text-sm text-gray-300">{fighter.address}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Sword className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">
+                        <Sword className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-300">
                           Level {fighter.level} • {fighter.xp} XP
                         </span>
                       </div>
@@ -169,12 +169,12 @@ export function GameDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 bg-transparent"
+                          className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
                           disabled={fighter.isActive}
                         >
                           {fighter.isActive ? "Active" : "Switch ID"}
                         </Button>
-                        <Button size="sm" variant="outline" className="flex-1 bg-transparent">
+                        <Button size="sm" variant="outline" className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
                           Trade ID
                         </Button>
                       </div>
@@ -186,26 +186,26 @@ export function GameDashboard() {
           </TabsContent>
 
           <TabsContent value="mapping" className="space-y-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Address Mapping Visualization</CardTitle>
+                <CardTitle className="text-white">Address Mapping Visualization</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {fighterIDs.map((fighter) => (
-                    <div key={fighter.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                    <div key={fighter.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-700">
                       <div className="flex items-center gap-4">
                         <Avatar>
                           <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                          <AvatarFallback>{fighter.username.slice(0, 2)}</AvatarFallback>
+                          <AvatarFallback className="bg-gray-600 text-white">{fighter.username.slice(0, 2)}</AvatarFallback>
                         </Avatar>
-                        <span className="font-mono text-sm">{fighter.address}</span>
+                        <span className="font-mono text-sm text-gray-300">{fighter.address}</span>
                       </div>
-                      <ArrowRightLeft className="w-5 h-5 text-muted-foreground" />
+                      <ArrowRightLeft className="w-5 h-5 text-gray-400" />
                       <div className="flex items-center gap-2">
-                        <span className="font-bold">{fighter.username}</span>
+                        <span className="font-bold text-white">{fighter.username}</span>
                         {fighter.isActive && (
-                          <Badge variant="outline" className="text-blue-500 border-blue-500">
+                          <Badge variant="outline" className="text-blue-400 border-blue-400">
                             Active
                           </Badge>
                         )}
@@ -218,13 +218,13 @@ export function GameDashboard() {
           </TabsContent>
 
           <TabsContent value="create" className="space-y-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Create New Fighter Identity</CardTitle>
+                <CardTitle className="text-white">Create New Fighter Identity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Choose Username</label>
+                  <label className="text-sm font-medium text-gray-300">Choose Username</label>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Enter unique username..."
@@ -233,9 +233,14 @@ export function GameDashboard() {
                         setNewUsername(e.target.value)
                         setIsAvailable(null)
                       }}
-                      className="flex-1"
+                      className="flex-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                     />
-                    <Button onClick={checkUsernameAvailability} disabled={!newUsername || isChecking} variant="outline">
+                    <Button 
+                      onClick={checkUsernameAvailability} 
+                      disabled={!newUsername || isChecking} 
+                      variant="outline"
+                      className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                    >
                       {isChecking ? "Checking..." : "Check"}
                     </Button>
                   </div>
@@ -249,9 +254,9 @@ export function GameDashboard() {
                   )}
                 </div>
 
-                <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-blue-500">
-                  <h4 className="font-semibold mb-2">Fighter ID Benefits:</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
+                <div className="p-4 rounded-lg bg-gray-700 border-l-4 border-blue-400">
+                  <h4 className="font-semibold mb-2 text-white">Fighter ID Benefits:</h4>
+                  <ul className="text-sm text-gray-300 space-y-1">
                     <li>• Unique identity across the Monad ecosystem</li>
                     <li>• Tradeable as Soul Bound Token (SBT)</li>
                     <li>• XP and achievements tied to username</li>
@@ -259,7 +264,7 @@ export function GameDashboard() {
                   </ul>
                 </div>
 
-                <Button className="w-full" disabled={!isAvailable} size="lg">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={!isAvailable} size="lg">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Fighter ID (0.1 MONAD)
                 </Button>

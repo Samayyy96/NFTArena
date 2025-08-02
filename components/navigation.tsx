@@ -51,7 +51,7 @@ export function Navigation({ activeSection, onNavigate }: NavigationProps) {
     { id: "dashboard", label: "Dashboard", icon: User },
     { id: "marketplace", label: "Marketplace", icon: ShoppingCart },
     { id: "arena", label: "Arena", icon: Sword },
-    { id: "gallery", label: "NFT Gallery", icon: Palette },
+    // { id: "gallery", label: "NFT Gallery", icon: Palette },
   ]
 
   // Check if MetaMask is installed

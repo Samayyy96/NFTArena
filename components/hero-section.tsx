@@ -2,13 +2,173 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Sword, Shield, Coins, Users, TrendingUp, Award, Zap } from "lucide-react"
+import { Sword, Shield, Coins, Users, TrendingUp, Award, Zap, Wallet, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
 
 interface HeroSectionProps {
   onNavigate: (section: string) => void
 }
 
+// MetaMask types
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean
+      request: (args: { method: string; params?: any[] }) => Promise<any>
+      on: (event: string, callback: (...args: any[]) => void) => void
+      removeListener: (event: string, callback: (...args: any[]) => void) => void
+    }
+  }
+}
+
 export function HeroSection({ onNavigate }: HeroSectionProps) {
+  const [walletAddress, setWalletAddress] = useState<string>("")
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [walletError, setWalletError] = useState<string>("")
+  const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState(false)
+
+  // Check if MetaMask is installed
+  useEffect(() => {
+    const checkMetaMask = () => {
+      if (typeof window !== "undefined") {
+        setIsMetaMaskInstalled(!!window.ethereum?.isMetaMask)
+      }
+    }
+    
+    checkMetaMask()
+    
+    // Check for already connected accounts
+    if (window.ethereum) {
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts: string[]) => {
+          if (accounts.length > 0) {
+            setWalletAddress(accounts[0])
+          }
+        })
+        .catch(console.error)
+    }
+  }, [])
+
+  // Handle account changes
+  useEffect(() => {
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0])
+          setWalletError("")
+        } else {
+          setWalletAddress("")
+        }
+      }
+
+      const handleChainChanged = () => {
+        // Reload the page when chain changes
+        window.location.reload()
+      }
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      window.ethereum.on('chainChanged', handleChainChanged)
+
+      return () => {
+        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged)
+        window.ethereum?.removeListener('chainChanged', handleChainChanged)
+      }
+    }
+  }, [])
+
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      setWalletError("MetaMask is not installed")
+      return
+    }
+
+    setIsConnecting(true)
+    setWalletError("")
+
+    try {
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      })
+
+      if (accounts.length > 0) {
+        setWalletAddress(accounts[0])
+        
+        // Optional: Switch to a specific network (e.g., Ethereum mainnet)
+        // try {
+        //   await window.ethereum.request({
+        //     method: 'wallet_switchEthereumChain',
+        //     params: [{ chainId: '0x1' }], // Ethereum mainnet
+        //   })
+        // } catch (switchError: any) {
+        //   if (switchError.code === 4902) {
+        //     // Network not added, you could add it here
+        //   }
+        // }
+      }
+    } catch (error: any) {
+      if (error.code === 4001) {
+        setWalletError("Connection rejected by user")
+      } else {
+        setWalletError("Failed to connect wallet")
+      }
+      console.error("Error connecting to MetaMask:", error)
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  const disconnectWallet = async () => {
+    setIsDisconnecting(true)
+    
+    try {
+      // Clear local state immediately
+      setWalletAddress("")
+      setWalletError("")
+      
+      // Method 1: Try to revoke permissions (newer MetaMask versions)
+      if (window.ethereum && window.ethereum.request) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_revokePermissions",
+            params: [{ eth_accounts: {} }]
+          })
+        } catch (revokeError) {
+          // If revoke doesn't work, try requesting new permissions
+          // This will show MetaMask popup asking user to reconnect
+          try {
+            await window.ethereum.request({
+              method: "wallet_requestPermissions",
+              params: [{ eth_accounts: {} }]
+            })
+          } catch (requestError) {
+            // Both methods failed, but we've cleared local state
+            console.log("Please manually disconnect from MetaMask extension")
+          }
+        }
+      }
+      
+      // Clear any stored wallet data in localStorage if you're using it
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("walletConnected")
+        localStorage.removeItem("walletAddress")
+      }
+      
+    } catch (error) {
+      console.error("Error during disconnect:", error)
+      // Ensure local state is cleared even if disconnect fails
+      setWalletAddress("")
+      setWalletError("")
+    } finally {
+      setIsDisconnecting(false)
+    }
+  }
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
       {/* Enhanced Background with Better Gradients */}
@@ -25,6 +185,14 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
         {/* Header Section */}
         <div className="mb-16">
           <Badge variant="outline" className="mb-8 text-primary border-primary/50 bg-primary/10 px-4 py-2 text-sm font-medium">
+            {walletAddress ? (
+              <span className="flex items-center gap-2">
+                <Wallet className="w-4 h-4" />
+                Connected: {formatAddress(walletAddress)}
+              </span>
+            ) : (
+              ""
+            )}
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
@@ -85,24 +253,77 @@ export function HeroSection({ onNavigate }: HeroSectionProps) {
           </div>
         </div>
 
+        {/* Wallet Error Display */}
+        {walletError && (
+          <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg max-w-md mx-auto">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">{walletError}</span>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced CTA Section */}
         <div className="mb-20">
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-4xl mx-auto">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-              onClick={() => onNavigate("dashboard")}
-            >
-              Connect Wallet & Start Playing
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10 hover:border-primary px-8 py-4 text-base sm:text-lg bg-transparent transition-all duration-300 hover:scale-105"
-              onClick={() => onNavigate("arena")}
-            >
-              Enter Practice Arena
-            </Button>
+            {!walletAddress ? (
+              <>
+                {isMetaMaskInstalled ? (
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    onClick={connectWallet}
+                    disabled={isConnecting}
+                  >
+                    <Wallet className="w-5 h-5 mr-2" />
+                    {isConnecting ? "Connecting..." : "Connect Wallet & Start Playing"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    onClick={() => window.open("https://metamask.io/download/", "_blank")}
+                  >
+                    Install MetaMask
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10 hover:border-primary px-8 py-4 text-base sm:text-lg bg-transparent transition-all duration-300 hover:scale-105"
+                  onClick={() => onNavigate("arena")}
+                >
+                  Enter Practice Arena
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  onClick={() => onNavigate("dashboard")}
+                >
+                  Enter Dashboard
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10 hover:border-primary px-8 py-4 text-base sm:text-lg bg-transparent transition-all duration-300 hover:scale-105"
+                  onClick={() => onNavigate("arena")}
+                >
+                  Enter Arena
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="w-full sm:w-auto text-muted-foreground hover:text-foreground hover:bg-muted/50 px-8 py-4 text-base sm:text-lg transition-all duration-300 hover:scale-105"
+                  onClick={disconnectWallet}
+                  disabled={isDisconnecting}
+                >
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
+                </Button>
+              </>
+            )}
             <Button
               size="lg"
               variant="ghost"
